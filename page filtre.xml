@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<form><localhost><user>
+
+<!-- ___________________________________________________________
+    Configuration Zend du formulaire 
+__________________________________________________________________ -->
+
+<formConfig>
+  <name>frm_AssTr_DossMesAno_filtre</name>  <!-- Modifié -->
+  <method>post</method>
+  <elements>
+    <variables_session>
+      <type>textarea</type>
+      <options>
+        <readonly/>
+        <value>Var session = ?</value>
+        <cols>100</cols>
+        <rows>1</rows>
+      </options>
+    </variables_session>
+
+      <e_fkEntite>
+				<type>Text</type>
+				<options>
+					<label>Entité</label>
+				</options>
+			</e_fkEntite>
+			
+			<e_fkUser>
+				<type>Text</type>
+				<options>
+					<label>En charge</label>
+				</options>
+			</e_fkUser>
+			
+			<e_xStatutDo>
+				<type>Text</type>
+				<options>
+					<label>Dossier</label>
+				</options>
+			</e_xStatutDo>
+			
+			<e_fkDossier>
+				<type>Text</type>
+				<options>
+					<label>Dossier</label>
+				</options>
+			</e_fkDossier>
+			
+			<submitSauver>
+				<type>submit</type>
+				<options>
+					<label>Filtrer</label>
+				</options>
+			</submitSauver>
+
+    <submitAnnuler>
+      <type>submit</type>
+      <options>
+        <label>Retour</label>
+      </options>
+    </submitAnnuler>
+  </elements>
+</formConfig>
+<!-- ______________________________________________________________________
+    Configuration "métier" spécifique du formulaire
+____________________________________________________________________________ -->
+
+<formConfigSql>
+  <!-- __________________________________   Alimentation des champs   ___________________________________________ -->
+  <defaultValues>
+    <!-- __________________________________  SQL de lecture de l'objet affiche  __________________________________________ -->
+    <champsTexte>
+      <defautValue>
+        <sql>
+      SELECT CONCAT('ClientId=',IFNULL(%SESSION_ClientId%,'null')
+            , ' ; UserId=',IFNULL(%SESSION_UserId%,'null')
+            , ' ; DossierId=',IFNULL(%SESSION_DossierId%,'null')
+            , ' ; FiltreName=',IFNULL('%SESSION_FiltreName%','null')
+            ) AS variables_session;
+        </sql>
+      </defautValue>
+      <!-- Dans le cadre d'une liste, le tag "for" indiquant la zone où écrire est indispensable,
+       et le tag liste contenant "liste" permet d'indiquer qu'il s'agit d'une liste à afficher  -->
+      
+      <defautValue>
+        <sql>
+      SELECT  ExtractString('%SESSION_FiltreName%', '|', 1) AS e_fkEntite
+            , ExtractString('%SESSION_FiltreName%', '|', 2) AS e_fkUser
+            , ExtractString('%SESSION_FiltreName%', '|', 3) AS e_xStatutDo
+            , ExtractString('%SESSION_FiltreName%', '|', 4) AS e_fkDossier
+      ;
+        </sql>
+      </defautValue>
+      
+		<defautValue for="e_fkEntite" liste="liste">
+			<sql>
+				SELECT en.Id AS id
+				, en.LibelleCourt AS Libelle
+				FROM do_entite en
+				WHERE en.fkClient= %SESSION_ClientId%;
+			</sql>
+			<valueCol>id</valueCol>
+			<labelCol>Libelle</labelCol>
+			<pHolderLabel>TOUS</pHolderLabel>
+			<pHolderValue>null</pHolderValue>
+		</defautValue>
+
+		<defautValue for="e_fkUser" liste="liste">
+			<sql>
+			(SELECT j.jos_users_id AS id
+			, j.denomination_NP AS Name
+			, j.fon_libelle AS cadregroup
+				FROM peusers_shortread_profil j
+				WHERE j.fkClient=%SESSION_ClientId% order by j.fon_id,j.name);</sql>
+			<valueCol>id</valueCol>
+			<labelCol>Name</labelCol>
+			<group>cadregroup</group>
+			<pHolderLabel>TOUS</pHolderLabel>
+			<pHolderValue>null</pHolderValue>
+		</defautValue>
+			
+		<defautValue for="e_xStatutDo" liste="liste">
+			<sql>
+				SELECT 0 AS Name, 'Actif' AS LibelleLong
+				UNION
+				SELECT 1 AS Name, 'Archivé' AS LibelleLong;
+			</sql>
+			<valueCol>Name</valueCol>
+			<labelCol>LibelleLong</labelCol>
+			<pHolderLabel>TOUS</pHolderLabel>
+			<pHolderValue>null</pHolderValue>
+		</defautValue>
+			
+		<defautValue for="e_fkDossier" liste="liste">
+			<sql>
+				SELECT do.Id AS Id
+					, CONCAT(pe.Denomination_NP, IFNULL(CONCAT(' (',do.ref,')'),'')) AS Intitule
+					, IF(do.TopArchive=0,'Actif','Archivé') AS cadregroup
+					, do.Id AS JsBase_Compare
+				FROM peprotegee_shortread pe
+				JOIN do_dossier do ON (do.fkClient=pe.fkClient AND do.Id=pe.fkDossier)
+				JOIN hab_user_acces_c hab ON hab.fkClient=do.fkClient AND hab.fkUser=%SESSION_UserId% AND hab.xType='habUsrDosAcces' AND topListeTrans='1' AND hab.fkDossier=do.Id
+				WHERE pe.fkClient=%SESSION_ClientId%
+				ORDER BY cadregroup, Intitule;
+			</sql>
+			<valueCol>Id</valueCol>
+			<labelCol>Intitule</labelCol>
+			<group>cadregroup</group>
+			<pHolderLabel>TOUS</pHolderLabel>
+			<pHolderValue>null</pHolderValue>
+		</defautValue>
+    </champsTexte>
+    <!-- ______________________________  SQL d'alimentation des listes deroulantes _______________________________________ -->
+    <listesReference>
+    </listesReference>
+  </defaultValues>
+  <!-- ______________________________  SQL de definition des listes de liens _____________________________________________ -->
+  <liens>
+  </liens>
+  <!-- _________________________________    SQL des actions     _____________________________________________ -->
+  <actions>
+    <submitSauver>
+      <validation>
+        <sql>
+   CALL PS_Charge_4_VariableSession_Val(@xml
+							, 'FiltreName'
+							, CONCAT_WS('|'
+											,IFNULL(%FIELD_e_fkEntite%,'')
+											,IFNULL(%FIELD_e_fkUser%,'')
+											,IFNULL(%FIELD_e_xStatutDo%,'')
+											,IFNULL(%FIELD_e_fkDossier%,'')
+											)
+							, NULL, NULL
+							, NULL, NULL
+							, NULL, NULL);
+							SELECT @xml;
+        </sql>
+      </validation>
+    </submitSauver>
+  </actions>
+</formConfigSql>
+<!-- ______________________________________________________________________
+
+        Mise en page du formulaire
+_________________________________________________________________________ -->
+<formConfigLayout>
+  <zone titre="Critères de filtre" id="zone1">
+<!--      <groupement>
+      <input id="variables_session" type="note" />
+    </groupement>  -->
+    <groupement>
+				<input id="e_fkEntite" taille="moyen" class="ListeAutoComplete"/>
+				<input id="e_fkUser" taille="moyen" class="ListeAutoComplete"/>
+			</groupement>
+			<groupement>
+				<input id="e_xStatutDo" taille="moyen" class="ListeAutoComplete"/>
+				<input id="e_fkDossier" taille="moyen" class="ListeAutoComplete"/>
+			</groupement>
+  </zone>
+</formConfigLayout>
+</user></localhost></form>
