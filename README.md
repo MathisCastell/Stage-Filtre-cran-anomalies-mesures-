@@ -23,6 +23,8 @@ Résultat :
 
 ![image](https://github.com/MathisCastell/Stage-Filtre-cran-anomalies-mesures-/assets/148212506/7ca64ccf-54f6-42fb-9424-c080dbf2b386)
 
+![image](https://github.com/MathisCastell/Stage-Filtre-cran-anomalies-mesures-/assets/148212506/b1ba762e-b1f5-4562-b8c0-6e5ad62bd532)
+
 
 
 
